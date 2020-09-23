@@ -1,12 +1,11 @@
 A command line version of the game 'Mastermind' as part of the Ruby Programming course on The Odin Project's website: https://www.theodinproject.com/courses/ruby-programming/lessons/oop
 
-Currently works but seperate line for every guessed peg is a little inefficient so plan to have input on a single line
-
-After each guess program asks if you want to see the answer while alpha testing for any bugs. Will not be available in full version
-
+**Current gameplay**
+* Input can be complete words or initials of colors, without spaces (i.e. 'redgreenblueyellow' ir 'rgby')
+* Game is over after 12 rounds or if player wins
+* Replay option only runs once
 
 **Features to add**
 * Computer guessing
-* Multiple rounds
-* Easier input
-* Way to exit out of program without ctr+c
+* User can input rounds / exit command
+* Way to quit out of program without ctr+c

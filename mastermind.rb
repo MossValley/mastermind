@@ -1,5 +1,4 @@
 #frozen_string_literal: true
-require 'pry'
 
 module Colors
   def colorize(number, peg)
@@ -22,12 +21,12 @@ class Computer
   end
 
   def check_guess(player_guess)
-    @guesses_remaining = player_guess.clone
-    return guess_checker(@guesses_remaining)
+    guesses_remaining = player_guess.clone
+    return guess_checker(guesses_remaining)
   end
 
   def show_answer
-    puts @code_array.join(' - ')
+    puts "Answer: #{@code_array.join(' - ')}"
   end
 
   private
@@ -46,29 +45,18 @@ class Computer
   def guess_checker(guesses_remaining)
     hint = []
     @unsolved = @code_array.clone
-    guesses_remaining.each_index { |p_index| hint.push(correct_guesses(guesses_remaining[p_index], p_index)).delete(0) }
-    unless @unsolved.length == 0
-      guesses_remaining.each_index { |p_index| hint.push(incorrect_guesses(guesses_remaining[p_index], p_index)) }
-    end
-    # binding.pry
-    return hint
+    guesses_remaining.each_index { |g_index| hint.push(correct_guesses(guesses_remaining[g_index], g_index)) }
+    return hint.sort
 
   end
 
-  def correct_guesses(p_slot, p_index)
-    if @code_array[p_index] == p_slot
-      @unsolved.delete_at(p_index)
-      @guesses_remaining.delete_at(p_index)
-      return colorize(6, "")                       # correct color + place
-    else
-      return 0
-    end
-  end
-
-  def incorrect_guesses(p_slot, p_index)
-    if @unsolved.any? { |c_slot| c_slot == p_slot } #correct color: wrong place
-      @unsolved.delete_at(@unsolved.index(p_slot))
-      return colorize(7, "")
+  def correct_guesses(g_slot, g_index)
+    if @unsolved[g_index] == g_slot
+      @unsolved[g_index] = "zero"
+      return colorize(6, "")                        # correct color + place
+    elsif @unsolved.any? { |u_slot| u_slot == g_slot } 
+      @unsolved[@unsolved.index(g_slot)] = "zero"
+      return colorize(7, "")                       #correct color: wrong place
     else
       return "x"                                    #incorrect color
     end
@@ -83,7 +71,7 @@ class Player
   def initialize
     @peg = 'O'
     @guess_array = (1..4).to_a
-    @guess_array.each { |slot| @guess_array[slot-1] = @peg }
+    @guess_array.each_index { |slot| @guess_array[slot] = @peg }
     @color_hash = {
       ['red', 'r'] => 0,
       ['green', 'g']=> 1,
@@ -146,37 +134,45 @@ class Game
   def self.init_game  
     @comp = Computer.new
     @player = Player.new
-    @rounds_taken = 0
-    play_game
+    @rounds_taken = 1
+    play_round
   end
+
+  def self.play_round
+    while @rounds_taken < 13
+      hint = play_game
+      winner = win_check(hint)
+      if winner == true then return end
+    end
+    puts "Game over"
+    show_answer
+  end
+
+  private 
 
   def self.play_game
     player_guess = @player.guess_the_code
     hint = @comp.check_guess(player_guess)
-    puts hint.join('-')
-    win_check(hint)
+    print "#{hint.join('-')}  ~ Turns: #{@rounds_taken} \n"
+    return hint
   end
 
   def self.win_check(hint)
-    if @rounds_taken > 12
-      puts "Game over"
-      show_answer
-    elsif hint.all? { |a| a == "\e[30m\e[0m"}
-      puts "You win! It took you #{@rounds_taken} rounds!"
-      print "Play again? Y/N: "
-      replay = gets.chomp.to_s.downcase
-      if replay == 'y' then init_game end
-    else 
-      @rounds_taken ++
-      print "R: #{@rounds_taken}"
-      play_game
+    unless hint.all? { |a| a == "\e[30m\e[0m"}
+      @rounds_taken += 1
+      return false
     end
+    puts "You win! It took you #{@rounds_taken} rounds!"
+    return true
   end
 
   def self.show_answer
     @comp.show_answer
   end
-
 end
 
 Game.init_game
+
+print "Play again? Y/N: "
+replay = gets.chomp.to_s.downcase
+if replay == 'y' then Game.init_game end
