@@ -1,0 +1,31 @@
+mastermind game
+
+decoding board
+  shield at one end
+
+code pegs of 6 different colors
+
+key pegs (black & white) for the code correct or not
+  white = correct color, wrong place
+  black = correct color, correct place
+
+create module with color naming (as from stackoverflow: https://stackoverflow.com/questions/1489183/colorized-ruby-output-to-the-terminal)
+
+computer
+  four different arrays of 6 colors (red, green, brown, blue, magenta, cyan)
+  randomise each color and assign it to a spot in final puzzle array.
+  check player's input
+    is color present in array? y/n 
+    is location correct? y/n
+
+    if color correct > gray pin
+    if location correct and color correct > black pin
+    if wrong color/location/ both > white/empty pin
+
+player
+  guess colors in four spaces
+  recieve computer response
+  guess again
+  
+  less than 12 times = win
+  else = lose
