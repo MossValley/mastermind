@@ -3,7 +3,8 @@ require 'pry'
 
 module Colors
   def colorize(number, peg)
-    colors_array = [31, 32, 33, 34, 35, 36, 30, 37] #colors respond to red, green, yellow, blue, pink, light_blue, black outline, grey outline respectively
+    colors_array = [31, 32, 33, 34, 35, 36, 30, 37] 
+    #colors respond to red, green, yellow, blue, pink, light_blue, black (correct color+place), grey (correct color) respectively
     result = "\e[#{colors_array[number]}m#{peg}\e[0m" #turns the peg into the particular color responding to the color code
     return result
   end
@@ -16,12 +17,13 @@ class Computer
 
   def initialize
     @peg = "O"
-    @code_array = (1..4).to_a
+    @code_array = (0...4).to_a
     generate_code
   end
 
   def check_guess(player_guess)
-    return guess_checker(player_guess)
+    @guesses_remaining = player_guess.clone
+    return guess_checker(@guesses_remaining)
   end
 
   def show_answer
@@ -32,7 +34,7 @@ class Computer
 
   def generate_code
     @code_array.each do |slot|
-      @code_array[slot-1] = color_randomizer
+      @code_array[slot] = color_randomizer
     end
   end
 
@@ -41,26 +43,35 @@ class Computer
     return colorize(random_number, @peg)
   end
 
-  def guess_checker(player_guess)
+  def guess_checker(guesses_remaining)
     hint = []
     @unsolved = @code_array.clone
-    player_guess.each_index do |p_index|
-      hint.push(code_checker(player_guess[p_index], p_index))
+    guesses_remaining.each_index { |p_index| hint.push(correct_guesses(guesses_remaining[p_index], p_index)).delete(0) }
+    unless @unsolved.length == 0
+      guesses_remaining.each_index { |p_index| hint.push(incorrect_guesses(guesses_remaining[p_index], p_index)) }
     end
-    return hint.sort
+    # binding.pry
+    return hint
+
   end
 
-  def code_checker(p_slot, p_index)
+  def correct_guesses(p_slot, p_index)
     if @code_array[p_index] == p_slot
       @unsolved.delete_at(p_index)
-      return colorize(6, "")
-    elsif @unsolved.any? { |c_slot| c_slot == p_slot }
+      @guesses_remaining.delete_at(p_index)
+      return colorize(6, "")                       # correct color + place
+    else
+      return 0
+    end
+  end
+
+  def incorrect_guesses(p_slot, p_index)
+    if @unsolved.any? { |c_slot| c_slot == p_slot } #correct color: wrong place
       @unsolved.delete_at(@unsolved.index(p_slot))
       return colorize(7, "")
     else
-      return "x"
+      return "x"                                    #incorrect color
     end
-    binding.pry
   end
 end
 
@@ -71,7 +82,6 @@ class Player
 
   def initialize
     @peg = 'O'
-    @slots_to_guess = (1..4).to_a
     @guess_array = (1..4).to_a
     @guess_array.each { |slot| @guess_array[slot-1] = @peg }
     @color_hash = {
@@ -90,7 +100,7 @@ class Player
 
   private 
 
-  def color_options
+  def color_options #to display the colors available as colored text
     options = []
     @color_hash.each do |color, key|
       if color == @color_hash.keys[-1]
@@ -104,27 +114,29 @@ class Player
 
   def guess_code
     colors = color_options()
-    @slots_to_guess.each do |slot|
-      puts @guess_array.join(' - ')
-      print "Slot #{slot} color? Options: #{colors.join('')}. | "
-      color_choice = input_checker
-      update_guess_array(slot, color_choice)
-    end 
+    print "Chose 4 colors. No spaces. Options: #{colors.join('')}. | "
+    input_checker
+    puts @guess_array.join(' - ')
     return @guess_array
   end
 
-  def update_guess_array(slot, color_choice)
-    @guess_array[slot-1] = colorize(@color_hash[color_choice], @peg)
+  def input_checker
+    input_array = gets.chomp.split('')
+    input_array.each_index do |slot|
+      unless @color_hash.any? { |color, number| color.any? { |i| i == input_array[slot]}}
+        print "Incorrect input. Try again. | "
+        input_array = gets.chomp.split('')
+      end
+      update_guess_array(slot, color_choice(input_array[slot]))
+    end
   end
 
-  def input_checker
-    input = gets.chomp.to_s
-    unless @color_hash.any? { |color, number| color.any? { |i| i == input}}
-      puts "Incorrect input. Try again"
-      input = gets.chomp.to_s
-    end
-    return @color_hash.filter_map { |color, number| 
-            color if color.any? { |i| i == input} }.flatten
+  def update_guess_array(slot, color_choice)
+    @guess_array[slot] = colorize(@color_hash[color_choice], @peg)
+  end
+
+  def color_choice(input_slot)
+    @color_hash.filter_map { |color, number| color if color.any? { |i| i == input_slot} }.flatten
   end
 end
 
@@ -134,32 +146,35 @@ class Game
   def self.init_game  
     @comp = Computer.new
     @player = Player.new
+    @rounds_taken = 0
     play_game
   end
 
   def self.play_game
-    guess = @player.guess_the_code
-    hint = @comp.check_guess(guess)
+    player_guess = @player.guess_the_code
+    hint = @comp.check_guess(player_guess)
     puts hint.join('-')
     win_check(hint)
   end
 
   def self.win_check(hint)
-    if hint.all? { |a| a == "\e[30m\e[0m"}
-      puts "You win!"
+    if @rounds_taken > 12
+      puts "Game over"
+      show_answer
+    elsif hint.all? { |a| a == "\e[30m\e[0m"}
+      puts "You win! It took you #{@rounds_taken} rounds!"
       print "Play again? Y/N: "
       replay = gets.chomp.to_s.downcase
       if replay == 'y' then init_game end
     else 
-      answer_check
+      @rounds_taken ++
+      print "R: #{@rounds_taken}"
       play_game
     end
   end
 
-  def self.answer_check
-    print "Show answer? Y/N: "
-    response = gets.chomp.to_s.downcase
-    if response == 'y' then @comp.show_answer end
+  def self.show_answer
+    @comp.show_answer
   end
 
 end

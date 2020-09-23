@@ -5,8 +5,8 @@ Currently works but seperate line for every guessed peg is a little inefficient 
 After each guess program asks if you want to see the answer while alpha testing for any bugs. Will not be available in full version
 
 
-Features to add
-*Computer guessing
-*Multiple rounds
-*Easier input
-*Way to exit out of program without ctr+c
+**Features to add**
+* Computer guessing
+* Multiple rounds
+* Easier input
+* Way to exit out of program without ctr+c
