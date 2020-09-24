@@ -9,8 +9,7 @@ module Colors
   end
 end
 
-
-class Computer
+class Codemaker
   include Colors
   attr_accessor :peg, :code_array
 
@@ -47,7 +46,6 @@ class Computer
     @unsolved = @code_array.clone
     guesses_remaining.each_index { |g_index| hint.push(correct_guesses(guesses_remaining[g_index], g_index)) }
     return hint.sort
-
   end
 
   def correct_guesses(g_slot, g_index)
@@ -63,7 +61,7 @@ class Computer
   end
 end
 
-class Player
+class Codebreaker
   include Colors
   attr_accessor :guess_array
   attr_reader :peg, :slots_to_guess, :color_hash
@@ -131,11 +129,20 @@ end
 class Game
   include Colors 
 
-  def self.init_game  
-    @comp = Computer.new
-    @player = Player.new
+  def self.init_game(player_is_codebreaker)
+    @player_codebreaker = player_is_codebreaker
+    @codemaster = Codemaker.new
+    @codebreaker = Codebreaker.new
     @rounds_taken = 1
     play_round
+  end
+
+  def self.start_game
+    if @player_codebreaker
+      play_round
+    else
+      #code
+    end
   end
 
   def self.play_round
@@ -151,8 +158,8 @@ class Game
   private 
 
   def self.play_game
-    player_guess = @player.guess_the_code
-    hint = @comp.check_guess(player_guess)
+    player_guess = @codebreaker.guess_the_code
+    hint = @codemaster.check_guess(player_guess)
     print "#{hint.join('-')}  ~ Turns: #{@rounds_taken} \n"
     return hint
   end
@@ -167,12 +174,31 @@ class Game
   end
 
   def self.show_answer
-    @comp.show_answer
+    @codemaster.show_answer
   end
 end
 
-Game.init_game
+class Start_program
+  def self.initialize
+    choose_game
+  end
+  def self.choose_game
+    play = 'y'
+    while play == 'y'
+      puts "Do you want to:\n1) be the codemaker? \n2) be the codebreaker? "
+      codebreaker = gets.chomp.to_s
+      case codebreaker
+      when "1"
+        Game.init_game(false)
+      when "2"
+        Game.init_game(true)
+      else
+        puts "Incorrect choice. Please try again"
+      end
+      print "Play again? Y/N: "
+      play = gets.chomp.to_s.downcase
+    end
+  end
+end
 
-print "Play again? Y/N: "
-replay = gets.chomp.to_s.downcase
-if replay == 'y' then Game.init_game end
+Start_program.initialize
