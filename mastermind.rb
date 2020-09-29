@@ -1,4 +1,5 @@
 #frozen_string_literal: true
+require 'pry'
 
 module Colors
   def colorize(number, peg)
@@ -6,6 +7,11 @@ module Colors
     #colors respond to red, green, yellow, blue, pink, light_blue, black (correct color+place), grey (correct color) respectively
     result = "\e[#{colors_array[number]}m#{peg}\e[0m" #turns the peg into the particular color responding to the color code
     return result
+  end
+
+  def color_randomizer
+    random_number = Random.new.rand(0...6)
+    return colorize(random_number, @peg)
   end
 end
 
@@ -19,8 +25,8 @@ class Codemaker
     generate_code
   end
 
-  def check_guess(player_guess)
-    guesses_remaining = player_guess.clone
+  def check_guess(codebreaker_guess)
+    guesses_remaining = codebreaker_guess.clone
     return guess_checker(guesses_remaining)
   end
 
@@ -34,11 +40,6 @@ class Codemaker
     @code_array.each do |slot|
       @code_array[slot] = color_randomizer
     end
-  end
-
-  def color_randomizer
-    random_number = Random.new.rand(0...6)
-    return colorize(random_number, @peg)
   end
 
   def guess_checker(guesses_remaining)
@@ -78,14 +79,23 @@ class Codebreaker
       ['pink', 'p'] => 4,
       ['light blue', 'l'] => 5
     }
+    @color_array = [0, 1, 2, 3, 4, 5] # r, g, y, b, p, l respectively
+    @possible_combintation = color_combinations
   end
 
-  def guess_the_code
-    guess_code
+  def guess_the_code(player, hints_to_give)
+    @hints_to_give = hints_to_give
+    case player
+    when true
+      guess_code_player
+    when false
+      guess_code_computer
+    end
   end
 
   private 
 
+  # --- code for when the player is the codebreaker ---
   def color_options #to display the colors available as colored text
     options = []
     @color_hash.each do |color, key|
@@ -98,7 +108,7 @@ class Codebreaker
     return options
   end
 
-  def guess_code
+  def guess_code_player
     colors = color_options()
     print "Chose 4 colors. No spaces. Options: #{colors.join('')}. | "
     input_checker
@@ -124,48 +134,92 @@ class Codebreaker
   def color_choice(input_slot)
     @color_hash.filter_map { |color, number| color if color.any? { |i| i == input_slot} }.flatten
   end
+
+  # --- code for when the computer is the codebreaker ---
+
+  def guess_code_computer
+    @hints_to_give.each do |hint_slot|
+      puts hint_slot
+      if hint_slot == 'x'
+        @guess_array.each_index { |slot| @guess_array[slot] = color_randomizer }
+      end
+    end 
+  end
+
+  def color_combinations
+    start = ['1', '1', '1', '1']
+    combination_array = []
+    while numberize(start) <= 6666
+      print "#{start} \n"
+      combination_array.push(start)
+      start = arrayize((numberize(start) + 1))
+      start = max_number(start)
+    end
+    return combination_array.length
+  end
+
+  def max_number(array)
+    range = [3, 2, 1]
+    for i in range do
+      if array[i] == '7'
+        array[i-1] = add_one(array, i-1)
+        array[i] = '1'
+      end
+    end
+    return array
+  end
+
+  def add_one(array, i)
+    return (array[i].to_i + 1).to_s
+  end
+
+  def numberize(array)
+    return array.join('').to_i
+  end
+
+  def arrayize(number)
+    return number.to_s.split('')
+  end
 end
 
 class Game
   include Colors 
 
   def self.init_game(player_is_codebreaker)
-    @player_codebreaker = player_is_codebreaker
+    @player_is_codebreaker = player_is_codebreaker
     @codemaster = Codemaker.new
     @codebreaker = Codebreaker.new
     @rounds_taken = 1
-    play_round
+    @hints_to_give = (0...4).to_a
+    @hints_to_give.each_index { |i| @hints_to_give[i] = 'x'}
+    start_game
   end
 
   def self.start_game
-    if @player_codebreaker
-      play_round
-    else
-      #code
-    end
+    play_round
   end
 
   def self.play_round
     while @rounds_taken < 13
-      hint = play_game
-      winner = win_check(hint)
+      hints_given = play_game
+      winner = win_check(hints_given)
       if winner == true then return end
     end
     puts "Game over"
     show_answer
   end
-
+    
   private 
 
   def self.play_game
-    player_guess = @codebreaker.guess_the_code
-    hint = @codemaster.check_guess(player_guess)
-    print "#{hint.join('-')}  ~ Turns: #{@rounds_taken} \n"
-    return hint
+    codebreaker_guess = @codebreaker.guess_the_code(@player_is_codebreaker, @hints_to_give)
+    @hints_to_give = @codemaster.check_guess(codebreaker_guess)
+    print "#{@hints_to_give.join('-')}  ~ Turns: #{@rounds_taken} \n"
+    return @hints_to_give
   end
 
-  def self.win_check(hint)
-    unless hint.all? { |a| a == "\e[30m\e[0m"}
+  def self.win_check(hints_given)
+    unless hints_given.all? { |a| a == "\e[30m\e[0m"}
       @rounds_taken += 1
       return false
     end

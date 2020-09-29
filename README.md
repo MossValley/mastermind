@@ -5,7 +5,9 @@ A command line version of the game 'Mastermind' as part of the Ruby Programming 
 * Game is over after 12 rounds or if player wins
 * Replay option only runs once
 
+**In progress**
+* Computer guessing - currently generates array of possible color combinations as a series of numbers (1-6). Will add minmax AI to guess code based on hint feedback
+
 **Features to add**
-* Computer guessing
 * User can input rounds / exit command
 * Way to quit out of program without ctr+c
